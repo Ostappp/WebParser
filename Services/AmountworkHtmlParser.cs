@@ -2,7 +2,6 @@
 using WebParser.Models;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
-using System.Buffers.Text;
 
 namespace WebParser.Services
 {
@@ -17,7 +16,7 @@ namespace WebParser.Services
             }
             else
             {
-                Console.WriteLine($"Wrong url address. Parser can not perform its task when working on '{coreUrl}'");
+                Console.WriteLine($"\n[{DateTime.Now}]\nWrong url address. Parser can not perform its task when working on '{coreUrl}'");
                 Environment.Exit(1);
             }
         }
@@ -26,16 +25,16 @@ namespace WebParser.Services
         {
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlSearchPage);
-            
+
 
             //Get pages count
             HtmlNodeCollection nodesWithPageCounts = htmlDoc.DocumentNode.SelectNodes("//ul[@class='pagination']/li/a");
-            if(nodesWithPageCounts != null)
+            if (nodesWithPageCounts != null)
             {
                 int pages = 0;
                 HtmlNode secondLastItem = nodesWithPageCounts[nodesWithPageCounts.Count - 2];
                 string lastPageUrl = secondLastItem.GetAttributeValue("href", string.Empty);
-                
+
                 string pattern = @"[?&]page=(\d+)";
 
                 Match match = Regex.Match(lastPageUrl, pattern);
@@ -49,13 +48,13 @@ namespace WebParser.Services
                     List<string> result = new();
                     foreach (var jobUrl in urlsWithJobs)
                     {
-                        result.AddRange(await GetJobsUrls(jobUrl));
+                        result.AddRange(await GetJobUrls(jobUrl));
                     }
                     return result;
                 }
                 else
                 {
-                    Console.WriteLine("Parsing error: can't find amount of pages");
+                    Console.WriteLine($"\n[{DateTime.Now}]\nParsing error: can't find amount of pages");
                 }
             }
             else
@@ -67,7 +66,44 @@ namespace WebParser.Services
 
         public async Task<JobInfoModel> ParseUrl(string htmlPage)
         {
+            htmlPage = $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{htmlPage}";
+            string htmlPage1 = await HtmlLoader.GetHtmlAsync(htmlPage);
 
+            HtmlDocument htmlDoc = new HtmlDocument();
+            htmlDoc.LoadHtml(htmlPage1);
+
+            //Get vacancy data
+            HtmlNodeCollection nodesWithPageCounts = htmlDoc.DocumentNode.SelectNodes("//div[@class='vacancy-container']");
+            var t = nodesWithPageCounts[0];
+            HtmlNode nodeWithData = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='vacancy-container']");
+            if (nodeWithData != null)
+            {
+                HtmlNode titleNode = nodeWithData.SelectSingleNode(".//h1[contains(@class, 'h1') and contains(@class,'h1-vacancy')]");
+                HtmlNode descriptionNode = nodeWithData.SelectSingleNode(".//div[@class='vacancy-description']");
+                HtmlNode locatioтNode = nodeWithData.SelectSingleNode(".//div[@class='company-info']/div[@class='company-info-country']/span[@class='second']");
+
+                string title = titleNode.InnerText;
+                string description = descriptionNode.InnerText;
+                string loсation = locatioтNode.InnerText;
+
+                IEnumerable<string> phones = PhoneExtractor.Extract(nodeWithData.InnerText);
+                IEnumerable<string> emails = EmailExtractor.Extract(nodeWithData.InnerText);
+
+                JobInfoModel resultModel = new()
+                {
+                    Title = title,
+                    Description = description,
+                    Location = loсation,
+                    Phones = phones,
+                    Emails = emails
+                };
+
+                return resultModel;
+            }
+            else
+            {
+                Console.WriteLine($"\n[{DateTime.Now}]\nParsing error: can't find vacancy data");
+            }
 
             return null;
         }
@@ -76,44 +112,43 @@ namespace WebParser.Services
         {
             List<string> urls = new List<string>();
 
-            // Регулярний вираз для видалення параметру 'page'
             string pattern = @"([?&])page=\d+";
             string cleanedUrl = Regex.Replace(_coreUrl, pattern, "");
 
-            // Видалення зайвого '&' чи '?' в кінці
             cleanedUrl = cleanedUrl.TrimEnd('&').TrimEnd('?');
 
             for (int i = 1; i <= pagesCount; i++)
             {
                 string separator = cleanedUrl.Contains("?") ? "&" : "?";
-                string newUrl = $"{cleanedUrl}{separator}page={i}";
+                string newUrl = $"{cleanedUrl}/{separator}page={i}";
                 urls.Add(newUrl);
             }
 
             return urls;
         }
-        private async Task< IEnumerable<string>> GetJobUrls(string searchPageUrl)
+        private async Task<IEnumerable<string>> GetJobUrls(string searchPageUrl)
         {
             List<string> jobUrls = new();
             string htmlPage = await HtmlLoader.GetHtmlAsync(searchPageUrl);
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlPage);
 
-            HtmlNodeCollection jobNodes = htmlDoc.DocumentNode.SelectNodes("//div[@class='vacancies-list-item']/a[@href]");
-            if(jobNodes != null)
+            HtmlNodeCollection jobNodes = htmlDoc.DocumentNode.SelectNodes("//div[contains(@class, 'vacancies-list')]/div[contains(@class,'vacancies-list-item')]/h3[contains(@class,'vacancies-list-name')]/a[@href]");
+            if (jobNodes != null)
             {
-                foreach (var node in jobNodes)
+                foreach (var jobNode in jobNodes)
                 {
-                    jobUrls.Add(node.GetAttributeValue("href", string.Empty));
+                    jobUrls.Add(jobNode.GetAttributeValue("href", string.Empty));
                 }
+
                 return jobUrls;
             }
             else
             {
-                Console.WriteLine("Error: can't find elements with 'href'");
+                Console.WriteLine($"\n[{DateTime.Now}]\nError: can't find elements with 'href'");
                 return null;
             }
-            
+
         }
     }
 }
