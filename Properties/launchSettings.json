@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WebParser": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    }
+  }
+}
