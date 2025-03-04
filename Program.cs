@@ -1,4 +1,5 @@
-﻿using WebParser.Models;
+﻿using Newtonsoft.Json;
+using WebParser.Models;
 using WebParser.Services;
 
 namespace WebParser
@@ -23,7 +24,14 @@ namespace WebParser
             foreach (var url in jobUrls)
             {
                 models.Add(await amountworkParser.ParseUrl(url));
-            }
+            }            
+            
+            // Серіалізація масиву в JSON
+            string jsonModels = JsonConvert.SerializeObject(models, Formatting.Indented);
+
+            await StringObjectSaver.SaveJsonToFileAsync("jobs.json", jsonModels);
+            await StringObjectSaver.SaveToCsvAsync("jobs.csv", models);
+
             Console.WriteLine("Press any key to close the program");
             Console.ReadLine();
         }
