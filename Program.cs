@@ -10,6 +10,7 @@ namespace WebParser
         {
             Console.WriteLine("Program started...");
             string url_to_parse = @"https://amountwork.com/ua/rabota/ssha/voditel";
+            List<string> blackList = new List<string>() { "Водитель" };
             using (StreamWriter logFile = new(Consts.LogFilePath, true))
             {
                 TeeTextWriter teeWriter = new(Console.Out, logFile);
@@ -29,16 +30,20 @@ namespace WebParser
                     htmlPage = await HtmlLoader.GetHtmlAsync(url);
                     models.Add(await amountworkParser.ParseHtmlPage(htmlPage));
                 }
-
+                models.RemoveAll(m => m == null); // removes empty models (nulls)
                 Console.WriteLine($"{DateTime.Now}\tCreated {models.Count} objects");
+                
+                Console.WriteLine($"{DateTime.Now}\tApplying filtration...");
+                var filtration = await (new BlackListFilter(blackList)).ApplyFiltration(models);
+                Console.WriteLine($"{DateTime.Now}\tFiltration completed. Filtration statistics:\n{filtration.stats}");
 
                 // Серіалізація масиву в JSON
-                string jsonModels = JsonConvert.SerializeObject(models, Formatting.Indented);
+                string jsonModels = JsonConvert.SerializeObject(filtration.passeedModels, Formatting.Indented);
 
                 Console.WriteLine($"{DateTime.Now}\tWriting data into json file...");
                 await StringObjectSaver.SaveJsonToFileAsync(Consts.JsonVacanciesPath, jsonModels);
                 Console.WriteLine($"{DateTime.Now}\tWriting data into csv file...");
-                await StringObjectSaver.SaveToCsvAsync(Consts.CsvVacanciesPath, models);
+                await StringObjectSaver.SaveToCsvAsync(Consts.CsvVacanciesPath, filtration.passeedModels);
 
                 Console.WriteLine($"{DateTime.Now}\tParsing completed. Results stored in {Consts.JsonVacanciesPath} and {Consts.CsvVacanciesPath}");
             }
