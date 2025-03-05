@@ -50,7 +50,7 @@ namespace WebParser.Services
                     {
                         result.AddRange(await GetJobUrls(jobUrl));
                     }
-                    return result;
+                    return result.Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
                 }
                 else
                 {
@@ -59,22 +59,17 @@ namespace WebParser.Services
             }
             else
             {
-                return await GetJobUrls(_coreUrl);
+                return (await GetJobUrls(_coreUrl)).Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
             }
             return null;
         }
 
-        public async Task<JobInfoModel> ParseUrl(string htmlPage)
+        public async Task<JobInfoModel> ParseHtmlPage(string htmlPage)
         {
-            htmlPage = $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{htmlPage}";
-            string htmlPage1 = await HtmlLoader.GetHtmlAsync(htmlPage);
-
             HtmlDocument htmlDoc = new HtmlDocument();
-            htmlDoc.LoadHtml(htmlPage1);
+            htmlDoc.LoadHtml(htmlPage);
 
             //Get vacancy data
-            HtmlNodeCollection nodesWithPageCounts = htmlDoc.DocumentNode.SelectNodes("//div[@class='vacancy-container']");
-            var t = nodesWithPageCounts[0];
             HtmlNode nodeWithData = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='vacancy-container']");
             if (nodeWithData != null)
             {
@@ -126,6 +121,7 @@ namespace WebParser.Services
 
             return urls;
         }
+
         private async Task<IEnumerable<string>> GetJobUrls(string searchPageUrl)
         {
             List<string> jobUrls = new();

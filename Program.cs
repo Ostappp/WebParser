@@ -16,22 +16,31 @@ namespace WebParser
                 Console.SetOut(teeWriter);
                 Console.SetError(teeWriter);
 
-                string html = await HtmlLoader.GetHtmlAsync(url_to_parse);
+                Console.WriteLine($"{DateTime.Now}\tGetting data from {url_to_parse}...");
+                string htmlPage = await HtmlLoader.GetHtmlAsync(url_to_parse);
+
                 AmountworkHtmlParser amountworkParser = new AmountworkHtmlParser(url_to_parse);
-                var jobUrls = await amountworkParser.GetJobsUrls(html);
+                var jobUrls = await amountworkParser.GetJobsUrls(htmlPage);
+                Console.WriteLine($"{DateTime.Now}\tReceived {jobUrls.Count()} urls");
+
                 List<JobInfoModel> models = new();
                 foreach (var url in jobUrls)
                 {
-                    models.Add(await amountworkParser.ParseUrl(url));
+                    htmlPage = await HtmlLoader.GetHtmlAsync(url);
+                    models.Add(await amountworkParser.ParseHtmlPage(htmlPage));
                 }
+
+                Console.WriteLine($"{DateTime.Now}\tCreated {models.Count} objects");
 
                 // Серіалізація масиву в JSON
                 string jsonModels = JsonConvert.SerializeObject(models, Formatting.Indented);
 
+                Console.WriteLine($"{DateTime.Now}\tWriting data into json file...");
                 await StringObjectSaver.SaveJsonToFileAsync(Consts.JsonVacanciesPath, jsonModels);
+                Console.WriteLine($"{DateTime.Now}\tWriting data into csv file...");
                 await StringObjectSaver.SaveToCsvAsync(Consts.CsvVacanciesPath, models);
 
-                Console.WriteLine("Press any key to close the program");
+                Console.WriteLine($"{DateTime.Now}\tParsing completed. Results stored in {Consts.JsonVacanciesPath} and {Consts.CsvVacanciesPath}");
             }
 
         }
