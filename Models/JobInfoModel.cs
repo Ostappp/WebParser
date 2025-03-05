@@ -1,12 +1,14 @@
 ﻿namespace WebParser.Models
 {
-    class JobInfoModel
+    class JobInfoModel:ICloneable
     {
         public string Title { get; set; }
         public string Description { get; set; }
         public IEnumerable<string> Phones { get; set; }
         public IEnumerable<string> Emails { get; set; }
         public string Location { get; set; }
+
+
 
         /// <summary>
         /// Checks if current model contain a given string in any of its fields.
@@ -30,6 +32,20 @@
         public bool Contains(IEnumerable<string> values)
         {            
             return values.ToList().Any(Contains);
+        }
+
+
+        public object Clone()
+        {
+            return new JobInfoModel
+            {
+                Title = this.Title,
+                Description = this.Description,
+                Phones = this.Phones.ToList(),
+                Emails = this.Emails.ToList(),
+                Location = this.Location,
+            };
+
         }
     }
 }

@@ -1,6 +1,9 @@
 ﻿using Newtonsoft.Json;
+using WebParser.Interfaces;
 using WebParser.Models;
+using WebParser.Parsers;
 using WebParser.Services;
+using WebParser.Services.Filters;
 
 namespace WebParser
 {
@@ -17,33 +20,23 @@ namespace WebParser
                 Console.SetOut(teeWriter);
                 Console.SetError(teeWriter);
 
-                Console.WriteLine($"{DateTime.Now}\tGetting data from {url_to_parse}...");
-                string htmlPage = await HtmlLoader.GetHtmlAsync(url_to_parse);
-
-                AmountworkHtmlParser amountworkParser = new AmountworkHtmlParser(url_to_parse);
-                var jobUrls = await amountworkParser.GetJobsUrls(htmlPage);
-                Console.WriteLine($"{DateTime.Now}\tReceived {jobUrls.Count()} urls");
-
-                List<JobInfoModel> models = new();
-                foreach (var url in jobUrls)
+                var filters = new List<IJobFilter>()
                 {
-                    htmlPage = await HtmlLoader.GetHtmlAsync(url);
-                    models.Add(await amountworkParser.ParseHtmlPage(htmlPage));
-                }
-                models.RemoveAll(m => m == null); // removes empty models (nulls)
-                Console.WriteLine($"{DateTime.Now}\tCreated {models.Count} objects");
-                
-                Console.WriteLine($"{DateTime.Now}\tApplying filtration...");
-                var filtration = await (new BlackListFilter(blackList)).ApplyFiltration(models);
-                Console.WriteLine($"{DateTime.Now}\tFiltration completed. Filtration statistics:\n{filtration.stats}");
+                    { new BlackListFilter(blackList) },
+                    //{ new PhoneFilter()},
+                };
+                var models = new List<JobInfoModel>();
 
-                // Серіалізація масиву в JSON
-                string jsonModels = JsonConvert.SerializeObject(filtration.passeedModels, Formatting.Indented);
+                var amountworkParser = new AmountworkParser(filters, url_to_parse);
+                models.AddRange(await amountworkParser.ParseAsync());
+
+               
+                string jsonModels = JsonConvert.SerializeObject(models, Formatting.Indented);
 
                 Console.WriteLine($"{DateTime.Now}\tWriting data into json file...");
                 await StringObjectSaver.SaveJsonToFileAsync(Consts.JsonVacanciesPath, jsonModels);
                 Console.WriteLine($"{DateTime.Now}\tWriting data into csv file...");
-                await StringObjectSaver.SaveToCsvAsync(Consts.CsvVacanciesPath, filtration.passeedModels);
+                await StringObjectSaver.SaveToCsvAsync(Consts.CsvVacanciesPath, models);
 
                 Console.WriteLine($"{DateTime.Now}\tParsing completed. Results stored in {Consts.JsonVacanciesPath} and {Consts.CsvVacanciesPath}");
             }

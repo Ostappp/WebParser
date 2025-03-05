@@ -125,7 +125,7 @@ namespace WebParser.Services
         private async Task<IEnumerable<string>> GetJobUrls(string searchPageUrl)
         {
             List<string> jobUrls = new();
-            string htmlPage = await HtmlLoader.GetHtmlAsync(searchPageUrl);
+            string htmlPage = await HttpHandler.GetHtmlAsync(searchPageUrl);
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlPage);
 
