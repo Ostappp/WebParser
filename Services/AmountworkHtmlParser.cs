@@ -17,12 +17,15 @@ namespace WebParser.Services
             else
             {
                 Console.WriteLine($"\n[{DateTime.Now}]\nWrong url address. Parser can not perform its task when working on '{coreUrl}'");
-                Environment.Exit(1);
+                return;
             }
         }
 
         public async Task<IEnumerable<string>> GetJobsUrls(string htmlSearchPage)
         {
+            if (string.IsNullOrEmpty(_coreUrl))
+                return null;
+
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlSearchPage);
 

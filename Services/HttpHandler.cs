@@ -2,7 +2,8 @@
 {
     class HttpHandler
     {
-        public static async Task<string> GetHtmlAsync(string url)
+        private const int MAX_TRIES = 10;
+        public static async Task<string> GetHtmlAsync(string url, int attempt = 0)
         {
             using (HttpClient client = new HttpClient())
             {
@@ -15,15 +16,22 @@
 
                     string htmlContent = await response.Content.ReadAsStringAsync();
                     return htmlContent;
-                }
+                }                
                 catch (HttpRequestException e)
                 {
+                    if (e.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt < MAX_TRIES)
+                    {
+                        Thread.Sleep(1000);
+                        return await GetHtmlAsync(url, attempt++);
+                    }
+
                     Console.WriteLine($"\nException Caught!\n[{DateTime.Now}]");
                     Console.WriteLine($"Message: {e.Message}");
                     Console.WriteLine($"Target: {e.TargetSite}");
                     Console.WriteLine($"Status Code: {e.StatusCode}");
                     Console.WriteLine($"Request Message: {e.HttpRequestError}");
                     Console.WriteLine($"Stack Trace: {e.StackTrace}");
+                    
                     return string.Empty;
                 }
                 catch(Exception e)
