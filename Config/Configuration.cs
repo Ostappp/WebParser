@@ -96,7 +96,6 @@ namespace WebParser.Config
                     { new AmountworkParser(filters) },
                 };
 
-
                 IEnumerable<string> urlsToParse = [];
                 IEnumerable<Task<IEnumerable<JobInfoModel>>> parseTasks;
                 foreach (var parser in parsers)
@@ -112,13 +111,9 @@ namespace WebParser.Config
                     models.AddRange(results.SelectMany(r => r));
                 }
 
-
-
-
                 await FileIO.SaveResults(models, _jsonPathes, _csvPathes);
 
-
-                Console.WriteLine($"{DateTime.Now}\tParsing completed. Results stored in:\n{string.Join(", ", _jsonPathes, _csvPathes)}");
+                Console.WriteLine($"{DateTime.Now}\tParsing completed. Results stored in:\n{string.Join(", ", [.. _jsonPathes, .. _csvPathes])}");
 
 
                 if (!opt.DisableConsoleOutput)
@@ -266,7 +261,7 @@ namespace WebParser.Config
                 _alpha2Codes = _alpha2Codes?.Concat(newItems) ?? newItems;
             }
 
-            if (!_alpha2Codes.Any())
+            if (_alpha2Codes == null || !_alpha2Codes.Any())
             {
                 _alpha2Codes = [.. Consts.CountryAlpha2Code];
             }
