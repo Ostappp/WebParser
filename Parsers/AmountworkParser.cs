@@ -30,12 +30,17 @@ namespace WebParser.Parsers
             List<JobInfoModel> result = new();
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tGetting data from {urlToParse}...");
+            
             string htmlPage = await HttpHandler.GetHtmlAsync(urlToParse);
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceiving job urls...");
+           
             AmountworkHtmlParser amountworkParser = new AmountworkHtmlParser(urlToParse);
-            var jobUrls = await amountworkParser.GetJobsUrls(htmlPage);
+            List<string> jobUrls = [.. await amountworkParser.GetJobsUrls(htmlPage)];
+            jobUrls.RemoveAll(string.IsNullOrEmpty);
+            
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceived {jobUrls.Count()} urls");
+            
             // if there is mistake in parsing or web site is invalid, end processing
             if (!jobUrls.Any())
             {
@@ -46,6 +51,7 @@ namespace WebParser.Parsers
             var parallelModels = new ConcurrentBag<JobInfoModel>();
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceiving html pages...");
+            
             var htmlPages = new List<string>(); 
             foreach (var url in jobUrls) 
             {
@@ -53,6 +59,7 @@ namespace WebParser.Parsers
             }
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tPages received. Start parsing...");
+            
             await Parallel.ForEachAsync(htmlPages, async (htmlPage, token) =>
             {
                 parallelModels.Add(await amountworkParser.ParseHtmlPage(htmlPage));
@@ -60,8 +67,8 @@ namespace WebParser.Parsers
 
             var models = parallelModels.ToList();           
             models.RemoveAll(m => m == null); // removes empty models (nulls)
+            
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tCreated {models.Count} objects");
-
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tApplying filtration...");
 
             result = [.. models];
@@ -69,11 +76,12 @@ namespace WebParser.Parsers
             {
                 var filtrationResult = await filter.ApplyFiltration(result);
                 result = filtrationResult.passeedModels.ToList();
+                
                 Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\t{filtrationResult.stats}");
             }
+            
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tFiltration completed. Filtration statistics:" +
                 $"\n\tIncome items: {models.Count}\tOutcome items: {result.Count}\tFiltered items: {models.Count - result.Count}");
-
 
             return result;
         }

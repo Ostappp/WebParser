@@ -88,6 +88,8 @@ namespace WebParser.Services.HtmlParsers
                 string loсation = locatioтNode.InnerText;
 
                 IEnumerable<string> phones = PhoneExtractor.Extract(nodeWithData.InnerText);
+                phones = await PhoneValidator.GetUniqueVerifiedNumbersAsync(phones);
+
                 IEnumerable<string> emails = EmailExtractor.Extract(nodeWithData.InnerText);
 
                 JobInfoModel resultModel = new()
