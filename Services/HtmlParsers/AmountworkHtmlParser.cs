@@ -2,8 +2,10 @@
 using WebParser.Models;
 using HtmlAgilityPack;
 using System.Text.RegularExpressions;
+using WebParser.Services.ObjExtractors;
+using WebParser.Config;
 
-namespace WebParser.Services
+namespace WebParser.Services.HtmlParsers
 {
     class AmountworkHtmlParser : IHtmlParser
     {
@@ -62,7 +64,8 @@ namespace WebParser.Services
             }
             else
             {
-                return (await GetJobUrls(_coreUrl)).Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
+                return (await GetJobUrls(_coreUrl))
+                    .Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
             }
             return null;
         }

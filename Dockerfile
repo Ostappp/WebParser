@@ -25,4 +25,5 @@ RUN dotnet publish "./WebParser.csproj" -c $BUILD_CONFIGURATION -o /app/publish 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "WebParser.dll"]
+# Use CMD to allow parameters to be passed during container run
+CMD ["dotnet", "WebParser.dll"]

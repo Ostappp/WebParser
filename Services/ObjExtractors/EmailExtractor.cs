@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace WebParser.Services
+namespace WebParser.Services.ObjExtractors
 {
     class EmailExtractor
     {

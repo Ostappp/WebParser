@@ -1,4 +1,4 @@
-﻿namespace WebParser
+﻿namespace WebParser.Config
 {
     class Consts
     {
@@ -9,10 +9,12 @@
         public static readonly Dictionary<WebSitesNames, string> CoreUrls = new()
         {
             {WebSitesNames.Amountwork, "https://amountwork.com/"},
+            {WebSitesNames.Undefined, "http"},
         };
         public enum WebSitesNames
         {
             Amountwork,
+            Undefined,
         }        
         public static string[] CountryAlpha2Code =
         {

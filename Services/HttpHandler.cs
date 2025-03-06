@@ -9,6 +9,7 @@
             {
                 try
                 {
+                    client.Timeout = TimeSpan.FromMinutes(3);
                     client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0");
 
                     HttpResponseMessage response = await client.GetAsync(url);
@@ -21,8 +22,8 @@
                 {
                     if (e.StatusCode == System.Net.HttpStatusCode.TooManyRequests && attempt < MAX_TRIES)
                     {
-                        Thread.Sleep(1000);
-                        return await GetHtmlAsync(url, attempt++);
+                        Thread.Sleep(2000);
+                        return await GetHtmlAsync(url, ++attempt);
                     }
 
                     Console.WriteLine($"\nException Caught!\n[{DateTime.Now}]");

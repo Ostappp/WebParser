@@ -1,5 +1,6 @@
 ﻿using PhoneNumbers;
 using System.Collections.Concurrent;
+using WebParser.Config;
 namespace WebParser.Services
 {
     public static class PhoneValidator
@@ -7,16 +8,10 @@ namespace WebParser.Services
         public static async Task<string> VerifyNumberAsync(string number)
         {
             var phoneNumberUtil = PhoneNumberUtil.GetInstance();
-
-            // check if number is written with country code ('+<code>')
-            var num = phoneNumberUtil.ParseAndKeepRawInput(number, null);
-            var regionCode = phoneNumberUtil.GetRegionCodeForNumber(num);
-
-            if (regionCode == null)
+            var result = new ConcurrentBag<string>();
+            try
             {
-                var result = new ConcurrentBag<string>();
-
-                await Parallel.ForEachAsync(Consts.CountryAlpha2Code, async (rCode, token) =>
+                await Parallel.ForEachAsync(Configuration.GetAlpha2Codes, async (rCode, token) =>
                 {
                     var parsedNum = phoneNumberUtil.ParseAndKeepRawInput(number, rCode);
                     var parsedRegionCode = phoneNumberUtil.GetRegionCodeForNumber(parsedNum);
@@ -26,18 +21,19 @@ namespace WebParser.Services
                         token.ThrowIfCancellationRequested(); //Stops parallel processing at the first match
                     }
                 });
-
-                if (!result.IsEmpty)
-                {
-                    return result.First();
-                }
             }
-            else
+            catch (Exception)
             {
-                return phoneNumberUtil.Format(num, PhoneNumberFormat.E164);
+                // ignore exception when number does not matches region code
+            }
+            if (!result.IsEmpty)
+            {
+                return result.First();
             }
 
-            return null;
+            return string.Empty;
+
+
         }
 
         public static async Task<IEnumerable<string>> VerifyNumbersAsync(IEnumerable<string> numbers)

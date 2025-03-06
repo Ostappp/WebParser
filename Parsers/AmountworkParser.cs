@@ -1,38 +1,39 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using WebParser.Config;
 using WebParser.Interfaces;
 using WebParser.Models;
 using WebParser.Services;
+using WebParser.Services.HtmlParsers;
 
 namespace WebParser.Parsers
 {
-    class AmountworkParser
+    class AmountworkParser: IParser
     {
         private readonly IEnumerable<IJobFilter> _filters;
-        private readonly string _urlToParse;
-
-        public AmountworkParser(IEnumerable<IJobFilter> filters, string urlToParse)
+        private static readonly Consts.WebSitesNames _tergetSite = Consts.WebSitesNames.Amountwork;
+        public AmountworkParser(IEnumerable<IJobFilter> filters)
         {
             _filters = filters;
-            _urlToParse = urlToParse;
         }
 
-        public async Task<IEnumerable<JobInfoModel>> ParseAsync()
+        public Consts.WebSitesNames GetParserTarget { get => _tergetSite; }
+
+        public async Task<IEnumerable<JobInfoModel>> ParseAsync(string urlToParse)
         {
-            return await Task.Run(Parse);
+            return await Task.Run(() => Parse(urlToParse));
         }
 
-        private async Task<IEnumerable<JobInfoModel>> Parse()
+        private async Task<IEnumerable<JobInfoModel>> Parse(string urlToParse)
         {
             int threadId = Thread.CurrentThread.ManagedThreadId;
             Console.WriteLine($"{DateTime.Now}\tAmountwork parser ({threadId}) starting...");
             List<JobInfoModel> result = new();
 
-            Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tGetting data from {_urlToParse}...");
-            string htmlPage = await HttpHandler.GetHtmlAsync(_urlToParse);
+            Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tGetting data from {urlToParse}...");
+            string htmlPage = await HttpHandler.GetHtmlAsync(urlToParse);
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceiving job urls...");
-            AmountworkHtmlParser amountworkParser = new AmountworkHtmlParser(_urlToParse);
+            AmountworkHtmlParser amountworkParser = new AmountworkHtmlParser(urlToParse);
             var jobUrls = await amountworkParser.GetJobsUrls(htmlPage);
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceived {jobUrls.Count()} urls");
             // if there is mistake in parsing or web site is invalid, end processing
@@ -45,14 +46,14 @@ namespace WebParser.Parsers
             var parallelModels = new ConcurrentBag<JobInfoModel>();
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tReceiving html pages...");
-            var htnlPages = new List<string>(); 
+            var htmlPages = new List<string>(); 
             foreach (var url in jobUrls) 
             {
-                htnlPages.Add(await HttpHandler.GetHtmlAsync(url));
+                htmlPages.Add(await HttpHandler.GetHtmlAsync(url));
             }
 
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tPages received. Start parsing...");
-            await Parallel.ForEachAsync(htnlPages, async (htmlPage, token) =>
+            await Parallel.ForEachAsync(htmlPages, async (htmlPage, token) =>
             {
                 parallelModels.Add(await amountworkParser.ParseHtmlPage(htmlPage));
             });
@@ -66,9 +67,9 @@ namespace WebParser.Parsers
             result = [.. models];
             foreach (var filter in _filters)
             {
-                var filtration = await filter.ApplyFiltration(result);
-                result = filtration.passeedModels.ToList();
-                Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\t{filtration.stats}");
+                var filtrationResult = await filter.ApplyFiltration(result);
+                result = filtrationResult.passeedModels.ToList();
+                Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\t{filtrationResult.stats}");
             }
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tFiltration completed. Filtration statistics:" +
                 $"\n\tIncome items: {models.Count}\tOutcome items: {result.Count}\tFiltered items: {models.Count - result.Count}");

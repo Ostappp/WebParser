@@ -1,8 +1,7 @@
 ﻿using HtmlAgilityPack;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Linq;
 using System.Text;
+using WebParser.Config;
 using WebParser.Interfaces;
 using WebParser.Models;
 
