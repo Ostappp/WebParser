@@ -1,7 +1,5 @@
 ﻿using CommandLine;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 using WebParser.Interfaces;
 using WebParser.Models;
 using WebParser.Parsers;
@@ -15,31 +13,31 @@ namespace WebParser.Config
         [Option("no-cli", Required = false, HelpText = "Disable output of logs to the terminal.")]
         public bool DisableConsoleOutput { get; set; }
 
-        [Option('j', "file-json", Required = false, HelpText = "Path to save .json data.")]
+        [Option('j', "file-json", Required = false, Separator = ' ', HelpText = "Path to save .json data.")]
         public IEnumerable<string> JsonFilePaths { get; set; }
 
-        [Option('c', "file-csv", Required = false, HelpText = "Path to save .csv data.")]
+        [Option('c', "file-csv", Required = false, Separator = ' ', HelpText = "Path to save .csv data.")]
         public IEnumerable<string> CsvFilePaths { get; set; }
 
-        [Option('o', "file-log", Required = false, HelpText = "Path to save .log data.")]
+        [Option('o', "file-log", Required = false, Separator = ' ', HelpText = "Path to save .log data.")]
         public IEnumerable<string> LogFilePaths { get; set; }
 
-        [Option('a', "url-aw", Required = false, HelpText = "URL link for Amountwork. Url must have a full path (starts with 'https://')")]
+        [Option('a', "url-aw", Required = false, Separator = ' ',  HelpText = "URL link for Amountwork. Url must have a full path (starts with 'https://')")]
         public IEnumerable<string> AmountworkUrls { get; set; }
 
-        [Option('u', "url", Required = false, HelpText = "URL link for other websites. Url must have a full path (starts with 'http://' or 'https://')")]
+        [Option('u', "url", Required = false, Separator = ' ', HelpText = "URL link for other websites. Url must have a full path (starts with 'http://' or 'https://')")]
         public IEnumerable<string> Urls { get; set; }
 
-        [Option('l', "url-list", Required = false, HelpText = "Path to the file with URL links. The file must contain just a single URL in each line. Url must have a full path (starts with 'http://' or 'https://')")]
+        [Option('l', "url-list", Required = false, Separator = ' ', HelpText = "Path to the file with URL links. The file must contain just a single URL in each line. Url must have a full path (starts with 'http://' or 'https://')")]
         public IEnumerable<string> UrlFilePath { get; set; }
 
-        [Option('b', "black-list", Required = false, HelpText = "Path to the JSON file with blacklist collection (the collection of strings).")]
+        [Option('b', "black-list", Required = false, Separator = ' ', HelpText = "Path to the JSON file with blacklist collection (the collection of strings).")]
         public IEnumerable<string> BlacklistFilePath { get; set; }
 
-        [Option("a2", Required = false, HelpText = "Alpha2 code for country whose mobile numbers to search for.")]
+        [Option("a2", Required = false, Separator = ' ', HelpText = "Alpha2 code for country whose mobile numbers to search for.")]
         public IEnumerable<string> Alpha2Codes { get; set; }
 
-        [Option("country-code", Required = false, HelpText = "Path to the JSON file with the country codes whose mobile numbers to search for, in alpha 2 format.")]
+        [Option("country-code", Required = false, Separator = ' ', HelpText = "Path to the JSON file with the country codes whose mobile numbers to search for, in alpha 2 format.")]
         public IEnumerable<string> Alpha2CodesFilePath { get; set; }
     }
 
@@ -58,8 +56,19 @@ namespace WebParser.Config
 
         public static async Task RunWithOptions(Options opt)
         {
+            Console.WriteLine($"{DateTime.Now}\tInitializing...");
             await Initialize(opt);
-            await RunParsing(opt);
+
+            Console.WriteLine($"{DateTime.Now}\tProgram initialized...");
+            if (_urls.Any())
+            {
+                await RunParsing(opt);
+            }
+            else
+            {
+                Console.WriteLine($"{DateTime.Now}\t[0] URLs found... Program closing...");
+            }
+
         }
 
         public static void HandleParseError(IEnumerable<Error> errs)

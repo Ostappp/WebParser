@@ -57,7 +57,7 @@ namespace WebParser.Parsers
             {
                 htmlPages.Add(await HttpHandler.GetHtmlAsync(url));
             }
-
+            htmlPages.RemoveAll(string.IsNullOrEmpty);
             Console.WriteLine($"{DateTime.Now}\t[AmountworkParser-{threadId}]\tPages received. Start parsing...");
             
             await Parallel.ForEachAsync(htmlPages, async (htmlPage, token) =>
