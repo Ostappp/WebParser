@@ -100,7 +100,7 @@ namespace WebParser.Config
                 var filters = new List<IJobFilter>()
                 {
                     { new BlackListFilter(_blackList) },
-                    { new PhoneFilterTest()},
+                    { new PhoneFilter()},
                 };
                 var parsers = new List<IParser>()
                 {
