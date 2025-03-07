@@ -77,6 +77,8 @@ namespace WebParser.Config
             Console.WriteLine($"{DateTime.Now}\tError parsing arguments:\t{errorTypes}");
         }
 
+
+
         private static async Task Initialize(Options opt)
         {
             SetOutputFiles(opt);
@@ -98,7 +100,7 @@ namespace WebParser.Config
                 var filters = new List<IJobFilter>()
                 {
                     { new BlackListFilter(_blackList) },
-                    //{ new PhoneFilter()},
+                    { new PhoneFilterTest()},
                 };
                 var parsers = new List<IParser>()
                 {
@@ -132,6 +134,8 @@ namespace WebParser.Config
                 }
             }
         }
+
+
 
         private static void SetOutputFiles(Options opt)
         {
