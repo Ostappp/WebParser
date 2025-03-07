@@ -9,11 +9,13 @@
         public static readonly Dictionary<WebSitesNames, string> CoreUrls = new()
         {
             {WebSitesNames.Amountwork, "https://amountwork.com/"},
+            {WebSitesNames.Ukrainian, "https://ukrainian.us/"},
             {WebSitesNames.Undefined, "http"},
         };
         public enum WebSitesNames
         {
             Amountwork,
+            Ukrainian,
             Undefined,
         }        
         public static string[] CountryAlpha2Code =

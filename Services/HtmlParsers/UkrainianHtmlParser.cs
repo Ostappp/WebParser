@@ -1,19 +1,18 @@
-﻿using WebParser.Interfaces;
-using WebParser.Models;
-using HtmlAgilityPack;
+﻿using HtmlAgilityPack;
 using System.Text.RegularExpressions;
-using WebParser.Services.ObjExtractors;
 using WebParser.Config;
-using System;
+using WebParser.Interfaces;
+using WebParser.Models;
+using WebParser.Services.ObjExtractors;
 
 namespace WebParser.Services.HtmlParsers
 {
-    class AmountworkHtmlParser : IHtmlParser
+    class UkrainianHtmlParser : IHtmlParser
     {
         private readonly string _coreUrl;
-        public AmountworkHtmlParser(string coreUrl)
+        public UkrainianHtmlParser(string coreUrl)
         {
-            if (coreUrl.Contains(Consts.CoreUrls[Consts.WebSitesNames.Amountwork]))
+            if (coreUrl.Contains(Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]))
             {
                 _coreUrl = coreUrl;
             }
@@ -23,70 +22,86 @@ namespace WebParser.Services.HtmlParsers
                 return;
             }
         }
-
         public async Task<IEnumerable<string>> GetJobsUrls(string htmlSearchPage)
         {
+            List<string> result = new List<string>();
+
             if (string.IsNullOrEmpty(_coreUrl))
-                return null;
+                return result;
 
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlSearchPage);
 
-
-            //Get pages count
-            HtmlNodeCollection nodesWithPageCounts = htmlDoc.DocumentNode.SelectNodes("//ul[@class='pagination']/li/a");
-            if (nodesWithPageCounts != null)
+            // check if there is more than one page
+            HtmlNode lastPage = htmlDoc.DocumentNode.SelectSingleNode("//ul[@class='pagination']/li[@class='last']/a");
+            if (lastPage != null)
             {
+                // there is more than one page
+
                 int pages = 0;
-                HtmlNode secondLastItem = nodesWithPageCounts[nodesWithPageCounts.Count - 2];
-                string lastPageUrl = secondLastItem.GetAttributeValue("href", string.Empty);
+                string lastPageUrl = lastPage.GetAttributeValue("href", string.Empty);
 
                 string pattern = @"[?&]page=(\d+)";
 
                 Match match = Regex.Match(lastPageUrl, pattern);
                 if (match.Success)
                 {
+                    // url to the last page has been found
+
                     string pageValue = match.Groups[1].Value;
                     pages = Convert.ToInt32(pageValue);
 
+                    // get url for each page
                     IEnumerable<string> urlsWithJobs = GetPagesUrls(pages);
 
-                    List<string> result = new();
+                    // gets a urls to the vacancies from each page
                     foreach (var jobUrl in urlsWithJobs)
                     {
                         result.AddRange(await GetJobUrls(jobUrl));
                     }
-                    return result.Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
+                    return result;
                 }
                 else
                 {
-                    Console.WriteLine($"\n[{DateTime.Now}]\nParsing error: can't find amount of pages");
+                    Console.WriteLine($"{DateTime.Now}\tParsing error: can't find amount of pages");
                 }
             }
             else
             {
-                return (await GetJobUrls(_coreUrl))
-                    .Select(url => $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{url}");
+                // there is only one page
+
+                return await GetJobUrls(_coreUrl);
             }
-            return null;
+
+            return result;
         }
 
         public async Task<JobInfoModel> ParseHtmlPage(string htmlPage)
         {
+
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlPage);
 
-            //Get vacancy data
-            HtmlNode nodeWithData = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='vacancy-container']");
+            HtmlNode nodeWithData = htmlDoc.DocumentNode.SelectSingleNode("//div[@class='details']");
             if (nodeWithData != null)
             {
-                HtmlNode titleNode = nodeWithData.SelectSingleNode(".//h1[contains(@class, 'h1') and contains(@class,'h1-vacancy')]");
-                HtmlNode descriptionNode = nodeWithData.SelectSingleNode(".//div[@class='vacancy-description']");
-                HtmlNode locationNode = nodeWithData.SelectSingleNode(".//div[@class='company-info']/div[@class='company-info-country']/span[@class='second']");
+                HtmlNode titleNode = nodeWithData.SelectSingleNode(".//h1");
+                HtmlNode descriptionNode = nodeWithData.SelectSingleNode(".//div[@class='details__info']");
+
+                // get details (location, price, type ...)
+                var locationNode = nodeWithData.SelectNodes(".//ul[@class='details__list']/li");
+                string loсation = string.Empty;
+                foreach (var node in locationNode)
+                {
+                    if(node.SelectSingleNode(".//*[class='details__item-name']").InnerText == "City")
+                    {
+                        loсation = node.SelectSingleNode(".//*[@class='details__item-value'").InnerText;
+                    }
+
+                }
 
                 string title = titleNode.InnerText;
                 string description = descriptionNode.InnerText;
-                string loсation = locationNode.InnerText;
 
                 IEnumerable<string> phones = PhoneExtractor.Extract(nodeWithData.InnerText);
                 phones = await PhoneValidator.GetUniqueVerifiedNumbersAsync(phones);
@@ -108,9 +123,12 @@ namespace WebParser.Services.HtmlParsers
             {
                 Console.WriteLine($"\n[{DateTime.Now}]\nParsing error: can't find vacancy data");
             }
-
             return null;
         }
+
+
+
+
 
         private IEnumerable<string> GetPagesUrls(int pagesCount)
         {
@@ -128,27 +146,43 @@ namespace WebParser.Services.HtmlParsers
                 urls.Add(newUrl);
             }
 
+            // urls may have contain page language
+            // makes urls only for english language
+            urls = urls.Select(u => u.Replace($"{Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]}/ua", $"{Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]}")).ToList();
+
+
             return urls;
         }
 
         private async Task<IEnumerable<string>> GetJobUrls(string searchPageUrl)
         {
             List<string> jobUrls = new();
+            
+            // get html page from url
             string htmlPage = await HttpHandler.GetHtmlAsync(searchPageUrl);
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(htmlPage);
 
-            HtmlNodeCollection jobNodes = htmlDoc.DocumentNode.SelectNodes("//div[contains(@class, 'vacancies-list')]/div[contains(@class,'vacancies-list-item')]/h3[contains(@class,'vacancies-list-name')]/a[@href]");
+            // remove page
+
+            // get html elements with link to vacancy
+            HtmlNodeCollection jobNodes = htmlDoc.DocumentNode.SelectNodes("//*[@id=\"container\"]//div[contains(@class, \"card-work\")]/a[@href]");
             if (jobNodes != null)
             {
+                // get uri link to all vacancies
                 foreach (var jobNode in jobNodes)
                 {
                     jobUrls.Add(jobNode.GetAttributeValue("href", string.Empty));
                 }
-
+                // clear invalid elements
                 jobUrls.RemoveAll(string.IsNullOrEmpty);
 
-                return jobUrls.Select(u=> $"{Consts.CoreUrls[Consts.WebSitesNames.Amountwork]}{u}");
+                // create url from uri
+                jobUrls.Select(uri => $"{Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]}{uri}"
+                    // in case we have '//' instead '/' after website domain
+                    .Replace($"{Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]}/", Consts.CoreUrls[Consts.WebSitesNames.Ukrainian]));
+
+                return jobUrls;
             }
             else
             {

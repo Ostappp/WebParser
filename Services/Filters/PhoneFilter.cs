@@ -58,7 +58,7 @@ namespace WebParser.Services.Filters
             }
             catch (Exception)
             {
-                Console.WriteLine($"{DateTime.Now}\tError parsingjson object");
+                Console.WriteLine($"{DateTime.Now}\tError parsing json object");
                 return false;
             }
             

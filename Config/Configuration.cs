@@ -100,11 +100,12 @@ namespace WebParser.Config
                 var filters = new List<IJobFilter>()
                 {
                     { new BlackListFilter(_blackList) },
-                    { new PhoneFilter()},
+                    //{ new PhoneFilter()},
                 };
-                var parsers = new List<IParser>()
+                var parsers = new HashSet<IParser>()
                 {
                     { new AmountworkParser(filters) },
+                    { new UkrainianParser(filters) },
                 };
 
                 IEnumerable<string> urlsToParse = [];
