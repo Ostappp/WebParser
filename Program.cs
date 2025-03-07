@@ -1,10 +1,18 @@
-﻿namespace WebParser
+﻿using CommandLine;
+using WebParser.Config;
+
+namespace WebParser
 {
     internal class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            Console.WriteLine("Hello, World!");
+            var result = Parser.Default.ParseArguments<Options>(args);
+
+            await result
+                .WithParsedAsync(Configuration.RunWithOptions);
+
+            result.WithNotParsed(Configuration.HandleParseError);
         }
     }
 }
