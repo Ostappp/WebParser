@@ -34,23 +34,34 @@ namespace WebParser.Services.Filters
 
         private bool CheckNumber(HtmlDocument htmlDoc, string num)
         {
-            var jsonData = new JObject { ["value"] = num };
-            var content = new StringContent(jsonData.ToString(), Encoding.UTF8, "application/json");
-            var postResult = Task.Run(async () => await HttpHandler.GetFormResultAsync(Consts.PhoneCheckerApiUrl + "check_number", content)).Result;
-           
-            postResult = JObject.Parse(postResult)["value"]?.ToString();
-
-            htmlDoc.LoadHtml(postResult);
-            var spanElement = htmlDoc.DocumentNode.SelectSingleNode("//span");
-
-            if (spanElement != null)
+            if (string.IsNullOrEmpty(num))
+                return false;
+            try
             {
-                var style = spanElement.GetAttributeValue("style", string.Empty);
-                if (style.Contains("color: green"))
+                var jsonData = new JObject { ["value"] = num };
+                var content = new StringContent(jsonData.ToString(), Encoding.UTF8, "application/json");
+                var postResult = Task.Run(async () => await HttpHandler.GetFormResultAsync(Consts.PhoneCheckerApiUrl + "check_number", content)).Result;
+
+                postResult = JObject.Parse(postResult)["value"]?.ToString();
+
+                htmlDoc.LoadHtml(postResult);
+                var spanElement = htmlDoc.DocumentNode.SelectSingleNode("//span");
+
+                if (spanElement != null)
                 {
-                    return true;
+                    var style = spanElement.GetAttributeValue("style", string.Empty);
+                    if (style.Contains("color: green"))
+                    {
+                        return true;
+                    }
                 }
             }
+            catch (Exception)
+            {
+                Console.WriteLine($"{DateTime.Now}\tError parsingjson object");
+                return false;
+            }
+            
 
             return false;
         }
